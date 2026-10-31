@@ -547,17 +547,31 @@ class RefundService {
     const keyId = process.env.RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
     if (!accountNumber || !keyId || !keySecret) {
-      throw new Error('RazorpayX not configured - set RAZORPAYX_ACCOUNT_NUMBER in .env');
+      throw new BadRequestError(
+        'RazorpayX payout is not configured. Please set RAZORPAYX_ACCOUNT_NUMBER, RAZORPAY_KEY_ID, and RAZORPAY_KEY_SECRET in the server environment.'
+      );
     }
 
     const auth = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
     const call = async (path: string, body: any, extraHeaders: Record<string, string> = {}) => {
-      const res = await fetch(`https://api.razorpay.com/v1/${path}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: auth, ...extraHeaders },
-        body: JSON.stringify(body),
-      });
-      const json: any = await res.json();
+      let res: Response;
+      try {
+        res = await fetch(`https://api.razorpay.com/v1/${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: auth, ...extraHeaders },
+          body: JSON.stringify(body),
+        });
+      } catch (fetchErr: any) {
+        throw new BadRequestError(
+          `RazorpayX API call failed (${path}): ${fetchErr?.message || 'Network error'}. Check server connectivity and credentials.`
+        );
+      }
+      let json: any;
+      try {
+        json = await res.json();
+      } catch {
+        throw new BadRequestError(`RazorpayX returned a non-JSON response for ${path} (HTTP ${res.status}).`);
+      }
       if (!res.ok) throw new BadRequestError(json?.error?.description || 'Razorpay payout failed');
       return json;
     };

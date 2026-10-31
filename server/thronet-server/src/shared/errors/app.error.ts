@@ -239,6 +239,7 @@ export const errorHandler = (err: any, req: any, res: any, next: any) => {
     // Send error response
     const response: any = {
         success: false,
+        message: error.message,
         error: {
             message: error.message,
             code: error.errorCode,
