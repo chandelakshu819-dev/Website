@@ -599,6 +599,8 @@ class AdminController {
 
       ResponseHandler.success(res, 'Dashboard statistics retrieved successfully', formattedStats);
     } catch (error: any) {
+      console.log("Dashboard API Error:", error);
+
       logger.error('Failed to fetch dashboard stats:', error);
       next(error);
     }
